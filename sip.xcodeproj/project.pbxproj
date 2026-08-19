@@ -407,6 +407,9 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = sip;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "낮잠 기록과 Apple 건강 수면 기록을 함께 확인하기 위해 수면 데이터를 읽습니다.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "sip이 감지한 낮잠을 Apple 건강에 저장하기 위해 수면 데이터를 기록합니다.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "낮잠 가능 시간 안에서 움직임 변화를 확인하기 위해 동작 데이터를 사용합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -439,6 +442,9 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = sip;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "낮잠 기록과 Apple 건강 수면 기록을 함께 확인하기 위해 수면 데이터를 읽습니다.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "sip이 감지한 낮잠을 Apple 건강에 저장하기 위해 수면 데이터를 기록합니다.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "낮잠 가능 시간 안에서 움직임 변화를 확인하기 위해 동작 데이터를 사용합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

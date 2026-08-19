@@ -25,7 +25,7 @@ final class HealthKitService {
     // MARK: - Save Nap Record
     func saveNap(startDate: Date, endDate: Date) async throws {
         let sleepType = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!
-        let napValue = HKCategoryValueSleepAnalysis.asleep.rawValue
+        let napValue = HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue
 
         let sample = HKCategorySample(
             type: sleepType,
@@ -70,12 +70,11 @@ final class HealthKitService {
         }
 
         let naps = samples
-            .filter { $0.value == HKCategoryValueSleepAnalysis.asleep.rawValue }
+            .filter { $0.value == HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue }
             .map {
                 SleepRecord(
                     startDate: $0.startDate,
-                    endDate: $0.endDate,
-                    qualityScore: Int.random(in: 60...90) // 임시 점수
+                    endDate: $0.endDate
                 )
             }
 
