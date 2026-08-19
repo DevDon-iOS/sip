@@ -34,6 +34,7 @@ struct HomeView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
                 .padding(.bottom, 32)
+                .containerRelativeFrame(.horizontal)
             }
             .background(Color("BackgroundCanvas").ignoresSafeArea())
             .toolbar {
