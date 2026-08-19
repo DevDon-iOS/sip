@@ -28,7 +28,7 @@ enum NotoSansKR {
     }
 
     private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "com.Don.sip",
+        subsystem: Bundle.main.bundleIdentifier ?? "com.codling.sip",
         category: "FontRegistration"
     )
 
