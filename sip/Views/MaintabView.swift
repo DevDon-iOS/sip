@@ -8,34 +8,52 @@
 import SwiftUI
 
 struct MaintabView: View {
-    @State private var selectedTab = 1
+    @State private var selectedTab = MainTab.home
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            AnalysisView()
-                .tabItem {
-                    Image(systemName: "chart.bar.fill")
-                    Text("분석")
-                }
-                .tag(0)
-            
             HomeView()
                 .tabItem {
-                    Image(systemName: "house.fill")
-                    Text("홈")
+                    Label("홈", image: "IconoirHome")
                 }
-                .tag(1)
-            
+                .tag(MainTab.home)
+
+            AnalysisView()
+                .tabItem {
+                    Label("기록", image: "IconoirRecords")
+                }
+                .tag(MainTab.records)
+
             SettingView()
                 .tabItem {
-                    Image(systemName: "gearshape.fill")
-                    Text("설정")
+                    Label("설정", image: "IconoirSettings")
                 }
-                .tag(2)
+                .tag(MainTab.settings)
         }
+        .tint(Color("BrandAccent"))
     }
 }
 
-#Preview {
+private enum MainTab: Hashable {
+    case home
+    case records
+    case settings
+}
+
+#Preview("iPhone 13 mini · 375×812") {
     MaintabView()
+        .frame(width: 375, height: 812)
+        .preferredColorScheme(.light)
+}
+
+#Preview("iPhone SE · 375×667") {
+    MaintabView()
+        .frame(width: 375, height: 667)
+        .preferredColorScheme(.light)
+}
+
+#Preview("iPhone 15 Pro · 393×852") {
+    MaintabView()
+        .frame(width: 393, height: 852)
+        .preferredColorScheme(.light)
 }
