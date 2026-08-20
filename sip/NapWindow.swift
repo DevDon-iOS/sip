@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct NapWindow: Identifiable, Hashable {
+struct NapWindow: Codable, Identifiable, Hashable {
     let id: UUID
     var startTime: Date
     var endTime: Date
@@ -82,7 +82,7 @@ struct NapWindow: Identifiable, Hashable {
     }()
 }
 
-enum Weekday: Int, CaseIterable, Identifiable, Hashable {
+enum Weekday: Int, CaseIterable, Codable, Identifiable, Hashable {
     case monday
     case tuesday
     case wednesday

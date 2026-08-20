@@ -12,8 +12,10 @@ struct HomeView: View {
     @State private var scheduleRoute: ScheduleEditRoute?
     @ScaledMetric(relativeTo: .callout) private var sectionLineHeight = 24.0
 
-    init(windows: [NapWindow] = NapWindow.figmaHomeFixtures) {
-        _windows = State(initialValue: windows)
+    init(windows: [NapWindow]? = nil) {
+        _windows = State(
+            initialValue: windows ?? NapWindowStorage.load() ?? NapWindow.figmaHomeFixtures
+        )
 #if DEBUG
         let previewRoute = ProcessInfo.processInfo.arguments.contains("-SIPPreviewSchedule")
             ? ScheduleEditRoute(window: .defaultDraft)
@@ -117,11 +119,13 @@ struct HomeView: View {
         } else {
             windows.append(window)
         }
+        NapWindowStorage.save(windows)
     }
 
     private func setEnabled(_ window: NapWindow, _ isEnabled: Bool) {
         guard let index = windows.firstIndex(where: { $0.id == window.id }) else { return }
         windows[index].isEnabled = isEnabled
+        NapWindowStorage.save(windows)
     }
 }
 
