@@ -11,6 +11,7 @@ import SwiftUI
 struct AnalysisView: View {
     private let initialRecords: [SleepRecord]?
     @State private var records: [SleepRecord]?
+    @State private var isConditionCheckInPresented = false
 
     init(records: [SleepRecord]? = nil) {
         initialRecords = records
@@ -28,8 +29,15 @@ struct AnalysisView: View {
                         .accessibilityAddTraits(.isHeader)
 
                     if let records {
-                        RecordsContent(records: records)
+                        if records.isEmpty {
+                            RecordsEmptyView {
+                                isConditionCheckInPresented = true
+                            }
                             .padding(.top, 21)
+                        } else {
+                            RecordsContent(records: records)
+                                .padding(.top, 21)
+                        }
                     } else {
                         ProgressView()
                             .tint(Color("BrandAccent"))
@@ -45,6 +53,9 @@ struct AnalysisView: View {
             }
             .background(Color("BackgroundCanvas").ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(isPresented: $isConditionCheckInPresented) {
+                ConditionCheckInView(record: nil)
+            }
             .task {
                 guard initialRecords == nil, records == nil else { return }
 

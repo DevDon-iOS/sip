@@ -12,6 +12,7 @@ struct MaintabView: View {
 
 #if DEBUG
     private let usesFigmaRecords: Bool
+    private let usesEmptyRecords: Bool
     private let usesFigmaPermissions: Bool
 #endif
 
@@ -21,9 +22,12 @@ struct MaintabView: View {
         let launchPreviewTab = arguments.firstIndex(of: "-SIPPreviewTab")
             .flatMap { index in arguments.indices.contains(index + 1) ? arguments[index + 1] : nil }
         let resolvedPreviewTab = previewTab ?? launchPreviewTab
-        let initialTab = MainTab(rawValue: resolvedPreviewTab ?? "") ?? .home
+        let initialTab = resolvedPreviewTab == "records-empty"
+            ? MainTab.records
+            : (MainTab(rawValue: resolvedPreviewTab ?? "") ?? .home)
         _selectedTab = State(initialValue: initialTab)
         usesFigmaRecords = resolvedPreviewTab == MainTab.records.rawValue
+        usesEmptyRecords = resolvedPreviewTab == "records-empty"
         usesFigmaPermissions = resolvedPreviewTab == MainTab.settings.rawValue
 #else
         _ = previewTab
@@ -57,7 +61,7 @@ struct MaintabView: View {
     @ViewBuilder
     private var recordsView: some View {
 #if DEBUG
-        AnalysisView(records: usesFigmaRecords ? SleepRecord.figmaRecords : nil)
+        AnalysisView(records: usesEmptyRecords ? [] : (usesFigmaRecords ? SleepRecord.figmaRecords : nil))
 #else
         AnalysisView()
 #endif
@@ -111,6 +115,24 @@ private enum MainTab: String, Hashable {
 
 #Preview("Records · iPhone 15 Pro") {
     MaintabView(previewTab: "records")
+        .frame(width: 393, height: 852)
+        .preferredColorScheme(.light)
+}
+
+#Preview("Records Empty · iPhone 13 mini") {
+    MaintabView(previewTab: "records-empty")
+        .frame(width: 375, height: 812)
+        .preferredColorScheme(.light)
+}
+
+#Preview("Records Empty · iPhone SE") {
+    MaintabView(previewTab: "records-empty")
+        .frame(width: 375, height: 667)
+        .preferredColorScheme(.light)
+}
+
+#Preview("Records Empty · iPhone 15 Pro") {
+    MaintabView(previewTab: "records-empty")
         .frame(width: 393, height: 852)
         .preferredColorScheme(.light)
 }
