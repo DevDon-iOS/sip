@@ -42,6 +42,10 @@ enum ConditionCheckInStorage {
             .max { $0.updatedAt < $1.updatedAt }
     }
 
+    static func removeAll() {
+        UserDefaults.standard.removeObject(forKey: storageKey)
+    }
+
     private static func read() throws -> [ConditionCheckIn] {
         guard let data = UserDefaults.standard.data(forKey: storageKey) else { return [] }
         return try JSONDecoder().decode([ConditionCheckIn].self, from: data)

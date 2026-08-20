@@ -15,7 +15,7 @@ struct ScheduleEditView: View {
 
     init(
         window: NapWindow = .defaultDraft,
-        onSave: @escaping (NapWindow) -> Void = { _ in }
+        onSave: @escaping (NapWindow) -> Void
     ) {
         _draft = State(initialValue: window)
         self.onSave = onSave
@@ -251,7 +251,7 @@ private struct WeekdaySelectionCard: View {
 
 #Preview("Schedule Edit · iPhone 13 mini") {
     NavigationStack {
-        ScheduleEditView()
+        ScheduleEditView(onSave: { _ in })
     }
     .frame(width: 375, height: 812)
     .preferredColorScheme(.light)
@@ -259,7 +259,7 @@ private struct WeekdaySelectionCard: View {
 
 #Preview("Schedule Edit · iPhone SE") {
     NavigationStack {
-        ScheduleEditView()
+        ScheduleEditView(onSave: { _ in })
     }
     .frame(width: 375, height: 667)
     .preferredColorScheme(.light)
@@ -267,7 +267,7 @@ private struct WeekdaySelectionCard: View {
 
 #Preview("Schedule Edit · iPhone 15 Pro") {
     NavigationStack {
-        ScheduleEditView()
+        ScheduleEditView(onSave: { _ in })
     }
     .frame(width: 393, height: 852)
     .preferredColorScheme(.light)

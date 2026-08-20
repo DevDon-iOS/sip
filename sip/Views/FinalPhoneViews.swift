@@ -11,6 +11,7 @@ struct PermissionIntroductionView: View {
     let onCompletion: () -> Void
 
     @State private var isRequesting = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         ScrollView {
@@ -26,6 +27,8 @@ struct PermissionIntroductionView: View {
                     .foregroundStyle(Color("TextPrimary"))
                     .frame(minHeight: 34)
                     .padding(.top, 20)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2)
+                    .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 1 : 0.82)
                     .accessibilityAddTraits(.isHeader)
 
                 Text("필요한 권한은 다음 화면에서 하나씩 요청해요.")
@@ -59,33 +62,42 @@ struct PermissionIntroductionView: View {
                     .frame(minHeight: 16)
                     .padding(.top, 16)
 
-                Button(action: requestPermissions) {
-                    Group {
-                        if isRequesting {
-                            ProgressView()
-                                .tint(.white)
-                                .accessibilityLabel("권한 요청 중")
-                        } else {
-                            Text("계속")
-                                .font(NotoSansKR.font(size: 16, weight: .bold, relativeTo: .callout))
-                        }
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.white)
-                .background(Color("BrandAccent"), in: RoundedRectangle(cornerRadius: 14))
-                .disabled(isRequesting)
-                .padding(.top, 16)
-                .accessibilityHint("Apple 건강, 동작 및 피트니스, 알림 권한을 차례로 요청합니다")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
             .padding(.top, 14)
-            .padding(.bottom, 28)
+            .padding(.bottom, 20)
         }
         .background(Color("BackgroundCanvas").ignoresSafeArea())
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            continueButton
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 10)
+                .background(Color("BackgroundCanvas"))
+        }
         .interactiveDismissDisabled()
+    }
+
+    private var continueButton: some View {
+        Button(action: requestPermissions) {
+            Group {
+                if isRequesting {
+                    ProgressView()
+                        .tint(.white)
+                        .accessibilityLabel("권한 요청 중")
+                } else {
+                    Text("계속")
+                        .font(NotoSansKR.font(size: 16, weight: .bold, relativeTo: .callout))
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 52)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.white)
+        .background(Color("BrandAccent"), in: RoundedRectangle(cornerRadius: 14))
+        .disabled(isRequesting)
+        .accessibilityHint("Apple 건강, 동작 및 피트니스, 알림 권한을 차례로 요청합니다")
     }
 
     private func requestPermissions() {

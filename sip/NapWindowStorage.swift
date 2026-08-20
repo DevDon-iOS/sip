@@ -30,4 +30,8 @@ enum NapWindowStorage {
             logger.error("시간대를 저장하지 못했습니다: \(error.localizedDescription, privacy: .public)")
         }
     }
+
+    static func removeAll() {
+        UserDefaults.standard.removeObject(forKey: storageKey)
+    }
 }
