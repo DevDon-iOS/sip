@@ -11,6 +11,10 @@ import SwiftUI
 struct sipApp: App {
     @AppStorage("hasCompletedPermissionIntroduction") private var hasCompletedPermissionIntroduction = false
 
+    init() {
+        PhoneConnectivityCoordinator.shared.start()
+    }
+
     var body: some Scene {
         WindowGroup {
             rootView

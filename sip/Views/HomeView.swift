@@ -119,6 +119,19 @@ struct HomeView: View {
                     )
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .napWindowsDidChangeFromWatch)) { _ in
+                if let storedWindows = NapWindowStorage.load() {
+                    windows = storedWindows
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .activeNapSessionDidChangeFromWatch)) { _ in
+                activeSession = ActiveNapSessionStorage.load()
+                if let activeSession {
+                    route = .active(activeSession, fixedNow: nil)
+                } else if case .active = route {
+                    route = nil
+                }
+            }
         }
     }
 
@@ -146,23 +159,28 @@ struct HomeView: View {
             windows.append(window)
         }
         NapWindowStorage.save(windows)
+        PhoneConnectivityCoordinator.shared.publish(windows: windows, activeSession: activeSession)
     }
 
     private func setEnabled(_ window: NapWindow, _ isEnabled: Bool) {
         guard let index = windows.firstIndex(where: { $0.id == window.id }) else { return }
         windows[index].isEnabled = isEnabled
         NapWindowStorage.save(windows)
+        PhoneConnectivityCoordinator.shared.publish(windows: windows, activeSession: activeSession)
     }
 
     private func updateActiveSession(_ session: ActiveNapSession) {
         activeSession = session
         ActiveNapSessionStorage.save(session)
+        PhoneConnectivityCoordinator.shared.publish(windows: windows, activeSession: session)
     }
 
     private func endActiveSession(_ session: ActiveNapSession) {
         guard activeSession?.id == session.id || activeSession == nil else { return }
         activeSession = nil
         ActiveNapSessionStorage.remove()
+        PhoneConnectivityCoordinator.shared.notifySessionEnded(session.id)
+        PhoneConnectivityCoordinator.shared.publish(windows: windows, activeSession: nil)
     }
 }
 
