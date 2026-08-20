@@ -75,11 +75,10 @@ struct ConditionCheckInView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(record == nil ? "결과" : "기상 후 상태")
-                    .font(NotoSansKR.font(size: 16, weight: .bold, relativeTo: .headline))
+                    .font(NotoSansKR.navigationFont(size: 16, weight: .bold))
                     .foregroundStyle(Color("TextPrimary"))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
-                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .accessibilityAddTraits(.isHeader)
             }
 
@@ -150,11 +149,10 @@ struct RecordDetailView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text("낮잠 기록")
-                    .font(NotoSansKR.font(size: 16, weight: .bold, relativeTo: .headline))
+                    .font(NotoSansKR.navigationFont(size: 16, weight: .bold))
                     .foregroundStyle(Color("TextPrimary"))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
-                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .accessibilityAddTraits(.isHeader)
             }
         }
