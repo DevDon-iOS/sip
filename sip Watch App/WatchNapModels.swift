@@ -95,3 +95,55 @@ struct WatchSyncEvent: Codable, Equatable, Identifiable {
         )
     }
 }
+
+struct WatchNormalizedObservation: Codable, Equatable, Identifiable {
+    enum Kind: String, Codable {
+        case motion
+        case activeSession
+        case directStart
+        case directEnd
+    }
+
+    static let currentSchemaVersion = 1
+
+    let id: UUID
+    let sessionID: UUID
+    let sequence: Int
+    let start: Date
+    let end: Date
+    let kind: Kind
+    let activity: String?
+    let confidence: Int?
+    let capturedAt: Date
+    let timeZoneIdentifier: String
+    let schemaVersion: Int
+    let algorithmVersion: String
+
+    init(
+        id: UUID = UUID(),
+        sessionID: UUID,
+        sequence: Int,
+        start: Date,
+        end: Date,
+        kind: Kind,
+        activity: String? = nil,
+        confidence: Int? = nil,
+        capturedAt: Date,
+        timeZoneIdentifier: String = TimeZone.current.identifier,
+        schemaVersion: Int = currentSchemaVersion,
+        algorithmVersion: String
+    ) {
+        self.id = id
+        self.sessionID = sessionID
+        self.sequence = sequence
+        self.start = start
+        self.end = end
+        self.kind = kind
+        self.activity = activity
+        self.confidence = confidence
+        self.capturedAt = capturedAt
+        self.timeZoneIdentifier = timeZoneIdentifier
+        self.schemaVersion = schemaVersion
+        self.algorithmVersion = algorithmVersion
+    }
+}

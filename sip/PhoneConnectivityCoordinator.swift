@@ -27,6 +27,8 @@ final class PhoneConnectivityCoordinator: NSObject {
         static let isAlarmEnabled = "isAlarmEnabled"
         static let activeSessionData = "activeSessionData"
         static let eventData = "eventData"
+        static let observationData = "observationData"
+        static let eventID = "eventID"
         static let command = "command"
         static let sessionID = "sessionID"
     }
@@ -43,6 +45,17 @@ final class PhoneConnectivityCoordinator: NSObject {
     )
     private let session: WCSession?
     private var hasStarted = false
+    private lazy var detectionCoordinator: NapDetectionCoordinator? = {
+        do {
+            return NapDetectionCoordinator(
+                store: try SwiftDataNapDetectionStore(),
+                healthData: HealthKitService.shared
+            )
+        } catch {
+            logger.error("Detection store initialization failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }()
 
     private override init() {
         session = WCSession.isSupported() ? .default : nil
@@ -144,6 +157,65 @@ final class PhoneConnectivityCoordinator: NSObject {
         } catch {
             logger.error("Watch event decoding failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    private func receive(observationData: Data) {
+        do {
+            let payload = try JSONDecoder().decode(PhoneWatchObservation.self, from: observationData)
+            guard payload.schemaVersion == NapObservation.currentSchemaVersion,
+                  let interval = try? NapInterval(start: payload.start, end: payload.end) else { return }
+            let kind: NapObservationKind
+            switch payload.kind {
+            case .motion:
+                kind = .motion(activity: payload.activity ?? "unknown", confidence: payload.confidence ?? 0)
+            case .activeSession:
+                kind = .activeSession
+            case .directStart:
+                kind = .directStart
+            case .directEnd:
+                kind = .directEnd
+            }
+            let observation = NapObservation(
+                id: payload.id,
+                sessionID: payload.sessionID,
+                interval: interval,
+                source: payload.kind == .motion ? .watchMotion : .activeSession,
+                kind: kind,
+                provenance: NapObservationProvenance(
+                    providerIdentifier: payload.id.uuidString,
+                    sourceBundleIdentifier: "com.codling.sip.watchkitapp",
+                    metadata: [
+                        "sequence": String(payload.sequence),
+                        "timeZoneIdentifier": payload.timeZoneIdentifier
+                    ]
+                ),
+                capturedAt: payload.capturedAt,
+                schemaVersion: payload.schemaVersion,
+                algorithmVersion: payload.algorithmVersion
+            )
+            guard let detectionCoordinator else {
+                throw NapDetectionError.persistenceFailed("Detection store unavailable")
+            }
+            _ = try detectionCoordinator.ingest(
+                sessionID: payload.sessionID,
+                windowID: nil,
+                candidate: interval,
+                timeZoneIdentifier: payload.timeZoneIdentifier,
+                observations: [observation]
+            )
+            acknowledgeObservation(payload.id)
+        } catch {
+            logger.error("Watch observation ingestion failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func acknowledgeObservation(_ observationID: UUID) {
+        guard let session, session.activationState == .activated else { return }
+        session.transferUserInfo([
+            MessageKey.schemaVersion: NapObservation.currentSchemaVersion,
+            MessageKey.command: "observationIngested",
+            MessageKey.eventID: observationID.uuidString
+        ])
     }
 
     private func processPendingEvents(using windows: [NapWindow]) {
@@ -303,9 +375,12 @@ extension PhoneConnectivityCoordinator: WCSessionDelegate {
         _ session: WCSession,
         didReceiveUserInfo userInfo: [String: Any] = [:]
     ) {
-        guard let eventData = userInfo[MessageKey.eventData] as? Data else { return }
         Task { @MainActor in
-            self.receive(eventData: eventData)
+            if let eventData = userInfo[MessageKey.eventData] as? Data {
+                self.receive(eventData: eventData)
+            } else if let observationData = userInfo[MessageKey.observationData] as? Data {
+                self.receive(observationData: observationData)
+            }
         }
     }
 
@@ -375,4 +450,26 @@ private struct PhoneWatchNapSession: Codable {
             endAlarmAt: endAlarmAt
         )
     }
+}
+
+private struct PhoneWatchObservation: Codable {
+    enum Kind: String, Codable {
+        case motion
+        case activeSession
+        case directStart
+        case directEnd
+    }
+
+    let id: UUID
+    let sessionID: UUID
+    let sequence: Int
+    let start: Date
+    let end: Date
+    let kind: Kind
+    let activity: String?
+    let confidence: Int?
+    let capturedAt: Date
+    let timeZoneIdentifier: String
+    let schemaVersion: Int
+    let algorithmVersion: String
 }
