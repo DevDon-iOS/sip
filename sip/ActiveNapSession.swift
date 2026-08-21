@@ -9,13 +9,13 @@ import Foundation
 
 struct ActiveNapSession: Codable, Identifiable, Hashable {
     let id: UUID
-    let windowID: UUID
+    let windowID: UUID?
     let startedAt: Date
     var endAlarmAt: Date
 
     init(
         id: UUID = UUID(),
-        windowID: UUID,
+        windowID: UUID?,
         startedAt: Date,
         endAlarmAt: Date
     ) {
@@ -23,6 +23,16 @@ struct ActiveNapSession: Codable, Identifiable, Hashable {
         self.windowID = windowID
         self.startedAt = startedAt
         self.endAlarmAt = endAlarmAt
+    }
+
+    static func instant(now: Date = .now, calendar: Calendar = .current) -> ActiveNapSession {
+        let endAlarmAt = calendar.date(byAdding: .hour, value: 1, to: now)
+            ?? now.addingTimeInterval(60 * 60)
+        return ActiveNapSession(
+            windowID: nil,
+            startedAt: now,
+            endAlarmAt: endAlarmAt
+        )
     }
 
     func elapsedMinutes(at date: Date) -> Int {

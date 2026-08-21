@@ -48,6 +48,8 @@ struct sipApp: App {
             DebugNavigationPreview {
                 HelpView()
             }
+        case "home":
+            MaintabView(previewTab: "home")
         default:
             productionRoot
         }
