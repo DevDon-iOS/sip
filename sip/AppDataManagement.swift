@@ -6,10 +6,13 @@
 //
 
 import Foundation
+import OSLog
 import SwiftUI
 import UIKit
 
 enum AppDataManagement {
+    private static let logger = Logger(subsystem: "com.codling.sip", category: "AppDataManagement")
+
     static func makeExportFile(now: Date = .now) throws -> URL {
         let payload = AppDataExport(
             version: 1,
@@ -39,6 +42,11 @@ enum AppDataManagement {
         NapWindowStorage.removeAll()
         ActiveNapSessionStorage.remove()
         ConditionCheckInStorage.removeAll()
+        do {
+            try SwiftDataNapDetectionStore().deleteAll()
+        } catch {
+            logger.error("Detection data deletion failed: \(error.localizedDescription, privacy: .public)")
+        }
         UserDefaults.standard.removeObject(forKey: "statusReminderEnabled")
         if let activeSession {
             PhoneConnectivityCoordinator.shared.notifySessionEnded(activeSession.id)
