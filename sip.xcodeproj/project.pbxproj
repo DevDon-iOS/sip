@@ -461,6 +461,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = sip;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Apple Watch에서 낮잠 기록과 건강 수면 데이터를 함께 확인하기 위해 수면 데이터를 읽습니다.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Apple Watch에서 확인한 낮잠을 Apple 건강에 저장하기 위해 수면 데이터를 기록합니다.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.codling.sip;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -491,6 +493,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = sip;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Apple Watch에서 낮잠 기록과 건강 수면 데이터를 함께 확인하기 위해 수면 데이터를 읽습니다.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Apple Watch에서 확인한 낮잠을 Apple 건강에 저장하기 위해 수면 데이터를 기록합니다.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.codling.sip;
 				LD_RUNPATH_SEARCH_PATHS = (
