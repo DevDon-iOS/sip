@@ -444,6 +444,128 @@ struct NapDetectionTests {
         try FileManager.default.removeItem(at: fileURL)
     }
 
+    @Test("Watch motion provider lifecycle emits versioned provenance")
+    func watchMotionLifecycleAndProvenance() throws {
+        let provider = FakeWatchMotionObservationProvider()
+        var received: [WatchNormalizedObservation] = []
+        let controller = WatchMotionObservationController(provider: provider) {
+            received.append($0)
+        }
+        let sessionID = UUID()
+        let start = reference
+        let end = reference.addingTimeInterval(60)
+
+        try controller.start(sessionID: sessionID, from: start)
+        provider.emit(
+            WatchMotionActivitySample(
+                start: start,
+                end: end,
+                activity: "stationary",
+                confidence: 2,
+                capturedAt: end,
+                providerIdentifier: "core-motion-activity-v1|sample-1",
+                providerVersion: "watchOS fixture",
+                deviceIdentifier: "Watch fixture",
+                metadata: ["deliveryOrigin": "history"]
+            )
+        )
+        controller.pause(at: end)
+        try controller.resume(at: end.addingTimeInterval(30))
+        controller.stop(at: end.addingTimeInterval(60))
+
+        #expect(provider.calls == [
+            .start(start),
+            .pause(end),
+            .resume(end.addingTimeInterval(30)),
+            .stop(end.addingTimeInterval(60))
+        ])
+        #expect(controller.providerState == .stopped)
+        #expect(received.count == 1)
+        #expect(received[0].sessionID == sessionID)
+        #expect(received[0].providerIdentifier == "core-motion-activity-v1|sample-1")
+        #expect(received[0].sourceVersion == "watchOS fixture")
+        #expect(received[0].deviceIdentifier == "Watch fixture")
+        #expect(received[0].schemaVersion == WatchNormalizedObservation.currentSchemaVersion)
+        #expect(received[0].algorithmVersion == "unvalidated-production-v1")
+        #expect(received[0].metadata == ["deliveryOrigin": "history"])
+    }
+
+    @Test("Watch motion cancellation suppresses late provider delivery")
+    func watchMotionCancellation() throws {
+        let provider = FakeWatchMotionObservationProvider()
+        var received: [WatchNormalizedObservation] = []
+        let controller = WatchMotionObservationController(provider: provider) {
+            received.append($0)
+        }
+
+        try controller.start(sessionID: UUID(), from: reference)
+        controller.cancel()
+        provider.emit(
+            WatchMotionActivitySample(
+                start: reference,
+                end: reference.addingTimeInterval(1),
+                activity: "unknown",
+                confidence: 0,
+                capturedAt: reference.addingTimeInterval(1),
+                providerIdentifier: "late-sample",
+                providerVersion: nil,
+                deviceIdentifier: nil,
+                metadata: [:]
+            )
+        )
+
+        #expect(provider.calls == [.start(reference), .cancel])
+        #expect(controller.providerState == .cancelled)
+        #expect(received.isEmpty)
+    }
+
+    @Test("Deterministic provider identity survives outbox reload and retry")
+    func watchMotionDeterministicIdentityAndOutboxRetry() throws {
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("watch-motion-outbox-\(UUID().uuidString).json")
+        let provider = FakeWatchMotionObservationProvider()
+        let outbox = try WatchObservationOutbox(fileURL: fileURL)
+        let sessionID = UUID()
+        let controller = WatchMotionObservationController(provider: provider) {
+            try? outbox.enqueue($0)
+        }
+        let sample = WatchMotionActivitySample(
+            start: reference,
+            end: reference.addingTimeInterval(30),
+            activity: "stationary",
+            confidence: 1,
+            capturedAt: reference.addingTimeInterval(30),
+            providerIdentifier: "core-motion-activity-v1|stable-sample",
+            providerVersion: "fixture",
+            deviceIdentifier: "fixture-watch",
+            metadata: ["deliveryOrigin": "history"]
+        )
+
+        try controller.start(sessionID: sessionID, from: reference)
+        provider.emit(sample)
+        provider.emit(sample)
+        controller.stop(at: sample.end)
+
+        let relaunchedOutbox = try WatchObservationOutbox(fileURL: fileURL)
+        let relaunchedProvider = FakeWatchMotionObservationProvider()
+        let relaunchedController = WatchMotionObservationController(provider: relaunchedProvider) {
+            try? relaunchedOutbox.enqueue($0)
+        }
+        try relaunchedController.start(sessionID: sessionID, from: reference)
+        relaunchedProvider.emit(sample)
+        #expect(relaunchedOutbox.observations.count == 1)
+        #expect(relaunchedOutbox.observations[0].providerIdentifier == sample.providerIdentifier)
+        #expect(relaunchedOutbox.observations[0].metadata == sample.metadata)
+
+        relaunchedController.stop(at: sample.end)
+        try relaunchedController.start(sessionID: UUID(), from: reference)
+        relaunchedProvider.emit(sample)
+        #expect(relaunchedOutbox.observations.count == 2)
+        #expect(relaunchedOutbox.observations[0].id != relaunchedOutbox.observations[1].id)
+
+        try FileManager.default.removeItem(at: fileURL)
+    }
+
     private func interval(_ startMinute: Int, _ endMinute: Int) throws -> NapInterval {
         try NapInterval(
             start: reference.addingTimeInterval(TimeInterval(startMinute * 60)),
@@ -474,6 +596,62 @@ struct NapDetectionTests {
             capturedAt: reference.addingTimeInterval(TimeInterval((capturedMinute ?? endMinute) * 60)),
             algorithmVersion: "fixture-v1"
         )
+    }
+}
+
+@MainActor
+private final class FakeWatchMotionObservationProvider: WatchMotionObservationProviding {
+    enum Call: Equatable {
+        case start(Date)
+        case pause(Date)
+        case resume(Date)
+        case stop(Date)
+        case cancel
+    }
+
+    private(set) var state: WatchMotionObservationProviderState = .stopped
+    private(set) var calls: [Call] = []
+    private var handler: (@MainActor (WatchMotionActivitySample) -> Void)?
+
+    func start(
+        from date: Date,
+        handler: @escaping @MainActor (WatchMotionActivitySample) -> Void
+    ) throws {
+        guard state == .stopped || state == .cancelled else {
+            throw WatchMotionObservationError.invalidLifecycle
+        }
+        calls.append(.start(date))
+        state = .running
+        self.handler = handler
+    }
+
+    func pause(at date: Date) {
+        guard state == .running else { return }
+        calls.append(.pause(date))
+        state = .paused
+    }
+
+    func resume(at date: Date) throws {
+        guard state == .paused else { throw WatchMotionObservationError.invalidLifecycle }
+        calls.append(.resume(date))
+        state = .running
+    }
+
+    func stop(at date: Date) {
+        guard state == .running || state == .paused else { return }
+        calls.append(.stop(date))
+        state = .stopped
+        handler = nil
+    }
+
+    func cancel() {
+        calls.append(.cancel)
+        state = .cancelled
+        handler = nil
+    }
+
+    func emit(_ sample: WatchMotionActivitySample) {
+        handler?(sample)
     }
 }
 
