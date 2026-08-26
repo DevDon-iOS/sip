@@ -9,20 +9,36 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var windows: [NapWindow]
-    @State private var scheduleRoute: ScheduleEditRoute?
+    @State private var activeSession: ActiveNapSession?
+    @State private var route: HomeRoute?
     @ScaledMetric(relativeTo: .callout) private var sectionLineHeight = 24.0
 
     init(windows: [NapWindow]? = nil) {
+        let storedActiveSession = ActiveNapSessionStorage.load()
         _windows = State(
             initialValue: windows ?? NapWindowStorage.load() ?? NapWindow.figmaHomeFixtures
         )
+        _activeSession = State(initialValue: storedActiveSession)
 #if DEBUG
-        let previewRoute = ProcessInfo.processInfo.arguments.contains("-SIPPreviewSchedule")
-            ? ScheduleEditRoute(window: .defaultDraft)
-            : nil
-        _scheduleRoute = State(initialValue: previewRoute)
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-SIPPreviewSchedule") {
+            _route = State(initialValue: .schedule(.defaultDraft))
+        } else if arguments.contains("-SIPPreviewActiveNap") {
+            _route = State(
+                initialValue: .active(
+                    .figmaPreview,
+                    fixedNow: ActiveNapSession.figmaPreviewNow
+                )
+            )
+        } else {
+            _route = State(
+                initialValue: storedActiveSession.map { .active($0, fixedNow: nil) }
+            )
+        }
 #else
-        _scheduleRoute = State(initialValue: nil)
+        _route = State(
+            initialValue: storedActiveSession.map { .active($0, fixedNow: nil) }
+        )
 #endif
     }
 
@@ -90,8 +106,18 @@ struct HomeView: View {
                 }
             }
             .toolbarBackground(.hidden, for: .navigationBar)
-            .navigationDestination(item: $scheduleRoute) { route in
-                ScheduleEditView(window: route.window, onSave: save)
+            .navigationDestination(item: $route) { route in
+                switch route {
+                case .schedule(let window):
+                    ScheduleEditView(window: window, onSave: save)
+                case .active(let session, let fixedNow):
+                    NapActiveView(
+                        session: session,
+                        fixedNow: fixedNow,
+                        onUpdate: updateActiveSession,
+                        onEnd: endActiveSession
+                    )
+                }
             }
         }
     }
@@ -106,11 +132,11 @@ struct HomeView: View {
     }
 
     private func addWindow() {
-        scheduleRoute = ScheduleEditRoute(window: .defaultDraft)
+        route = .schedule(.defaultDraft)
     }
 
     private func edit(_ window: NapWindow) {
-        scheduleRoute = ScheduleEditRoute(window: window)
+        route = .schedule(window)
     }
 
     private func save(_ window: NapWindow) {
@@ -127,11 +153,29 @@ struct HomeView: View {
         windows[index].isEnabled = isEnabled
         NapWindowStorage.save(windows)
     }
+
+    private func updateActiveSession(_ session: ActiveNapSession) {
+        activeSession = session
+        ActiveNapSessionStorage.save(session)
+    }
+
+    private func endActiveSession(_ session: ActiveNapSession) {
+        guard activeSession?.id == session.id || activeSession == nil else { return }
+        activeSession = nil
+        ActiveNapSessionStorage.remove()
+    }
 }
 
-private struct ScheduleEditRoute: Identifiable, Hashable {
-    let window: NapWindow
-    var id: UUID { window.id }
+private enum HomeRoute: Identifiable, Hashable {
+    case schedule(NapWindow)
+    case active(ActiveNapSession, fixedNow: Date?)
+
+    var id: String {
+        switch self {
+        case .schedule(let window): "schedule-\(window.id.uuidString)"
+        case .active(let session, _): "active-\(session.id.uuidString)"
+        }
+    }
 }
 
 private struct SipWordmark: View {

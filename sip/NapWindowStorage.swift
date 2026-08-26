@@ -6,17 +6,28 @@
 //
 
 import Foundation
+import OSLog
 
 enum NapWindowStorage {
     private static let storageKey = "sip.napWindows.v1"
+    private static let logger = Logger(subsystem: "com.codling.sip", category: "NapWindowStorage")
 
     static func load() -> [NapWindow]? {
         guard let data = UserDefaults.standard.data(forKey: storageKey) else { return nil }
-        return try? JSONDecoder().decode([NapWindow].self, from: data)
+        do {
+            return try JSONDecoder().decode([NapWindow].self, from: data)
+        } catch {
+            logger.error("시간대를 불러오지 못했습니다: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 
     static func save(_ windows: [NapWindow]) {
-        guard let data = try? JSONEncoder().encode(windows) else { return }
-        UserDefaults.standard.set(data, forKey: storageKey)
+        do {
+            let data = try JSONEncoder().encode(windows)
+            UserDefaults.standard.set(data, forKey: storageKey)
+        } catch {
+            logger.error("시간대를 저장하지 못했습니다: \(error.localizedDescription, privacy: .public)")
+        }
     }
 }
