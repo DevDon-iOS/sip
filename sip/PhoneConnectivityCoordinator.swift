@@ -182,12 +182,14 @@ final class PhoneConnectivityCoordinator: NSObject {
                 source: payload.kind == .motion ? .watchMotion : .activeSession,
                 kind: kind,
                 provenance: NapObservationProvenance(
-                    providerIdentifier: payload.id.uuidString,
-                    sourceBundleIdentifier: "com.codling.sip.watchkitapp",
-                    metadata: [
+                    providerIdentifier: payload.providerIdentifier ?? payload.id.uuidString,
+                    sourceBundleIdentifier: payload.sourceBundleIdentifier ?? "com.codling.sip.watchkitapp",
+                    sourceVersion: payload.sourceVersion,
+                    deviceIdentifier: payload.deviceIdentifier,
+                    metadata: (payload.metadata ?? [:]).merging([
                         "sequence": String(payload.sequence),
                         "timeZoneIdentifier": payload.timeZoneIdentifier
-                    ]
+                    ]) { current, _ in current }
                 ),
                 capturedAt: payload.capturedAt,
                 schemaVersion: payload.schemaVersion,
@@ -472,4 +474,9 @@ private struct PhoneWatchObservation: Codable {
     let timeZoneIdentifier: String
     let schemaVersion: Int
     let algorithmVersion: String
+    let providerIdentifier: String?
+    let sourceBundleIdentifier: String?
+    let sourceVersion: String?
+    let deviceIdentifier: String?
+    let metadata: [String: String]?
 }
