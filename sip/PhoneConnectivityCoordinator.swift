@@ -77,7 +77,9 @@ final class PhoneConnectivityCoordinator: NSObject {
 
         if let activeSession {
             do {
-                context[MessageKey.activeSessionData] = try JSONEncoder().encode(activeSession)
+                context[MessageKey.activeSessionData] = try JSONEncoder().encode(
+                    PhoneWatchNapSession(activeSession: activeSession)
+                )
             } catch {
                 logger.error("Active session encoding failed: \(error.localizedDescription, privacy: .public)")
             }
@@ -357,6 +359,13 @@ private struct PhoneWatchNapSession: Codable {
     let windowID: UUID
     let startedAt: Date
     let endAlarmAt: Date
+
+    init(activeSession: ActiveNapSession) {
+        id = activeSession.id
+        windowID = activeSession.windowID ?? activeSession.id
+        startedAt = activeSession.startedAt
+        endAlarmAt = activeSession.endAlarmAt
+    }
 
     var activeNapSession: ActiveNapSession {
         ActiveNapSession(

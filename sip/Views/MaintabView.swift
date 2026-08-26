@@ -11,6 +11,7 @@ struct MaintabView: View {
     @State private var selectedTab: MainTab
 
 #if DEBUG
+    private let usesFigmaHome: Bool
     private let usesFigmaRecords: Bool
     private let usesEmptyRecords: Bool
     private let usesFigmaPermissions: Bool
@@ -26,6 +27,7 @@ struct MaintabView: View {
             ? MainTab.records
             : (MainTab(rawValue: resolvedPreviewTab ?? "") ?? .home)
         _selectedTab = State(initialValue: initialTab)
+        usesFigmaHome = resolvedPreviewTab == MainTab.home.rawValue
         usesFigmaRecords = resolvedPreviewTab == MainTab.records.rawValue
         usesEmptyRecords = resolvedPreviewTab == "records-empty"
         usesFigmaPermissions = resolvedPreviewTab == MainTab.settings.rawValue
@@ -37,7 +39,7 @@ struct MaintabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            HomeView()
+            homeView
                 .tabItem {
                     Label("홈", image: "IconoirHome")
                 }
@@ -56,6 +58,15 @@ struct MaintabView: View {
                 .tag(MainTab.settings)
         }
         .tint(Color("BrandAccent"))
+    }
+
+    @ViewBuilder
+    private var homeView: some View {
+#if DEBUG
+        HomeView(windows: usesFigmaHome ? NapWindow.figmaHomeFixtures : nil)
+#else
+        HomeView()
+#endif
     }
 
     @ViewBuilder

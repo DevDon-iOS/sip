@@ -14,7 +14,7 @@ struct HomeView: View {
     @ScaledMetric(relativeTo: .callout) private var sectionLineHeight = 24.0
 
     init(windows: [NapWindow]? = nil) {
-        let storedActiveSession = ActiveNapSessionStorage.load()
+        let storedActiveSession = windows == nil ? ActiveNapSessionStorage.load() : nil
         _windows = State(
             initialValue: windows ?? NapWindowStorage.load() ?? []
         )
@@ -72,6 +72,13 @@ struct HomeView: View {
                             )
                         }
                     }
+
+                    Button("zzz", action: startInstantNap)
+                        .buttonStyle(InstantNapButtonStyle())
+                        .disabled(activeSession != nil)
+                        .padding(.top, 24)
+                        .accessibilityLabel("지금 낮잠 시작")
+                        .accessibilityHint("즉시 낮잠을 시작하고 진행 화면을 엽니다")
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
@@ -157,6 +164,15 @@ struct HomeView: View {
         route = .schedule(.defaultDraft)
     }
 
+    private func startInstantNap() {
+        guard activeSession == nil else { return }
+        let session = ActiveNapSession.instant()
+        activeSession = session
+        ActiveNapSessionStorage.save(session)
+        PhoneConnectivityCoordinator.shared.publish(windows: windows, activeSession: session)
+        route = .active(session, fixedNow: nil)
+    }
+
     private func edit(_ window: NapWindow) {
         route = .schedule(window)
     }
@@ -212,6 +228,23 @@ private struct SipWordmark: View {
             .tracking(-1.4)
             .foregroundStyle(Color("BrandAccent"))
             .accessibilityAddTraits(.isHeader)
+    }
+}
+
+private struct InstantNapButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(NotoSansKR.font(size: 18, weight: .bold, relativeTo: .headline))
+            .foregroundStyle(isEnabled ? Color("SurfacePrimary") : Color("TextSecondary"))
+            .frame(maxWidth: .infinity, minHeight: 56, maxHeight: 56)
+            .background(
+                isEnabled ? Color("BrandAccent") : Color("SurfaceSecondary"),
+                in: RoundedRectangle(cornerRadius: 18)
+            )
+            .opacity(configuration.isPressed && isEnabled ? 0.82 : 1)
+            .contentShape(RoundedRectangle(cornerRadius: 18))
     }
 }
 
@@ -384,7 +417,20 @@ private enum NapWindowPresentation {
     }
 }
 
-#Preview("Home · Default") {
+#Preview("Home · iPhone 13 mini") {
     HomeView(windows: NapWindow.figmaHomeFixtures)
+        .frame(width: 375, height: 812)
+        .preferredColorScheme(.light)
+}
+
+#Preview("Home · iPhone SE") {
+    HomeView(windows: NapWindow.figmaHomeFixtures)
+        .frame(width: 375, height: 667)
+        .preferredColorScheme(.light)
+}
+
+#Preview("Home · iPhone 15 Pro") {
+    HomeView(windows: NapWindow.figmaHomeFixtures)
+        .frame(width: 393, height: 852)
         .preferredColorScheme(.light)
 }
