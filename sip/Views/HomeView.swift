@@ -16,7 +16,7 @@ struct HomeView: View {
     init(windows: [NapWindow]? = nil) {
         let storedActiveSession = ActiveNapSessionStorage.load()
         _windows = State(
-            initialValue: windows ?? NapWindowStorage.load() ?? NapWindow.figmaHomeFixtures
+            initialValue: windows ?? NapWindowStorage.load() ?? []
         )
         _activeSession = State(initialValue: storedActiveSession)
 #if DEBUG
@@ -129,6 +129,15 @@ struct HomeView: View {
                 if let activeSession {
                     route = .active(activeSession, fixedNow: nil)
                 } else if case .active = route {
+                    route = nil
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .localAppDataDidChange)) { _ in
+                windows = NapWindowStorage.load() ?? []
+                activeSession = ActiveNapSessionStorage.load()
+                if let activeSession {
+                    route = .active(activeSession, fixedNow: nil)
+                } else {
                     route = nil
                 }
             }
@@ -376,6 +385,6 @@ private enum NapWindowPresentation {
 }
 
 #Preview("Home · Default") {
-    HomeView()
+    HomeView(windows: NapWindow.figmaHomeFixtures)
         .preferredColorScheme(.light)
 }

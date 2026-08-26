@@ -21,8 +21,8 @@ struct NapActiveView: View {
     init(
         session: ActiveNapSession,
         fixedNow: Date? = nil,
-        onUpdate: @escaping (ActiveNapSession) -> Void = { _ in },
-        onEnd: @escaping (ActiveNapSession) -> Void = { _ in }
+        onUpdate: @escaping (ActiveNapSession) -> Void,
+        onEnd: @escaping (ActiveNapSession) -> Void
     ) {
         _session = State(initialValue: session)
         self.fixedNow = fixedNow
@@ -220,7 +220,9 @@ private struct AlarmTimeEditor: View {
     NavigationStack {
         NapActiveView(
             session: .figmaPreview,
-            fixedNow: ActiveNapSession.figmaPreviewNow
+            fixedNow: ActiveNapSession.figmaPreviewNow,
+            onUpdate: { _ in },
+            onEnd: { _ in }
         )
     }
     .frame(width: 375, height: 812)
@@ -231,7 +233,9 @@ private struct AlarmTimeEditor: View {
     NavigationStack {
         NapActiveView(
             session: .figmaPreview,
-            fixedNow: ActiveNapSession.figmaPreviewNow
+            fixedNow: ActiveNapSession.figmaPreviewNow,
+            onUpdate: { _ in },
+            onEnd: { _ in }
         )
     }
     .frame(width: 375, height: 667)
@@ -242,7 +246,9 @@ private struct AlarmTimeEditor: View {
     NavigationStack {
         NapActiveView(
             session: .figmaPreview,
-            fixedNow: ActiveNapSession.figmaPreviewNow
+            fixedNow: ActiveNapSession.figmaPreviewNow,
+            onUpdate: { _ in },
+            onEnd: { _ in }
         )
     }
     .frame(width: 393, height: 852)

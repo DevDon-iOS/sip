@@ -41,7 +41,7 @@ struct sipApp: App {
                 )
             }
         case "permission-introduction":
-            PermissionIntroductionView(onCompletion: {})
+            DebugPermissionIntroductionFlow()
         case "records-empty":
             MaintabView(previewTab: "records-empty")
         case "help":
@@ -91,6 +91,20 @@ struct DebugNavigationPreview<Content: View>: View {
                 .navigationDestination(isPresented: $isPresented) {
                     content
                 }
+        }
+    }
+}
+
+private struct DebugPermissionIntroductionFlow: View {
+    @State private var isCompleted = false
+
+    var body: some View {
+        if isCompleted {
+            MaintabView()
+        } else {
+            PermissionIntroductionView {
+                isCompleted = true
+            }
         }
     }
 }

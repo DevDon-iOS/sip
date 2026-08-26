@@ -13,21 +13,16 @@ import UserNotifications
 
 struct SettingView: View {
     private let fixedPermissions: PermissionSnapshot?
-    private let onExport: () -> Void
-    private let onDeleteAllData: () -> Void
 
     @AppStorage("statusReminderEnabled") private var isReminderEnabled = false
     @State private var permissions = PermissionSnapshot.pending
+    @State private var exportFile: ExportFile?
+    @State private var isDeleteConfirmationPresented = false
+    @State private var dataActionError: DataActionError?
     @Environment(\.openURL) private var openURL
 
-    init(
-        permissions: PermissionSnapshot? = nil,
-        onExport: @escaping () -> Void = {},
-        onDeleteAllData: @escaping () -> Void = {}
-    ) {
+    init(permissions: PermissionSnapshot? = nil) {
         fixedPermissions = permissions
-        self.onExport = onExport
-        self.onDeleteAllData = onDeleteAllData
         _permissions = State(initialValue: permissions ?? .pending)
     }
 
@@ -78,12 +73,12 @@ struct SettingView: View {
                     .padding(.top, 16)
 
                     SettingSection(title: "데이터") {
-                        DisclosureRow(label: "기록 내보내기", action: onExport)
+                        DisclosureRow(label: "기록 내보내기", action: exportData)
                         SettingDivider()
                         DisclosureRow(
                             label: "모든 데이터 삭제",
                             isDestructive: true,
-                            action: onDeleteAllData
+                            action: { isDeleteConfirmationPresented = true }
                         )
                     }
                     .padding(.top, 16)
@@ -99,6 +94,28 @@ struct SettingView: View {
                 guard fixedPermissions == nil else { return }
                 permissions = await PermissionSnapshot.current()
             }
+            .sheet(item: $exportFile) { file in
+                ActivityShareView(items: [file.url])
+            }
+            .confirmationDialog(
+                "모든 로컬 데이터를 삭제할까요?",
+                isPresented: $isDeleteConfirmationPresented,
+                titleVisibility: .visible
+            ) {
+                Button("모든 데이터 삭제", role: .destructive) {
+                    AppDataManagement.deleteLocalData()
+                }
+                Button("취소", role: .cancel) {}
+            } message: {
+                Text("낮잠 가능 시간, 진행 중인 낮잠과 기상 후 상태가 삭제됩니다. Apple 건강 데이터와 시스템 권한은 변경되지 않습니다.")
+            }
+            .alert(item: $dataActionError) { error in
+                Alert(
+                    title: Text("기록을 내보내지 못했어요"),
+                    message: Text(error.message),
+                    dismissButton: .default(Text("확인"))
+                )
+            }
         }
     }
 
@@ -106,6 +123,19 @@ struct SettingView: View {
         guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
         openURL(settingsURL)
     }
+
+    private func exportData() {
+        do {
+            exportFile = ExportFile(url: try AppDataManagement.makeExportFile())
+        } catch {
+            dataActionError = DataActionError(message: "잠시 후 다시 시도해 주세요.")
+        }
+    }
+}
+
+private struct DataActionError: Identifiable {
+    let id = UUID()
+    let message: String
 }
 
 private struct SettingSection<Content: View>: View {

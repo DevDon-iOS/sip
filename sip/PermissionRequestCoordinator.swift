@@ -38,22 +38,31 @@ final class PermissionRequestCoordinator {
         guard CMMotionActivityManager.isActivityAvailable() else { return }
         guard CMMotionActivityManager.authorizationStatus() == .notDetermined else { return }
 
-        do {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                motionManager.queryActivityStarting(
-                    from: Date().addingTimeInterval(-1),
-                    to: .now,
-                    to: .main
-                ) { _, error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                    } else {
-                        continuation.resume()
-                    }
-                }
+        await withCheckedContinuation { continuation in
+            var hasResumed = false
+
+            let resumeOnce = {
+                guard !hasResumed else { return }
+                hasResumed = true
+                continuation.resume()
             }
-        } catch {
-            logger.error("동작 및 피트니스 권한 요청을 완료하지 못했습니다: \(error.localizedDescription, privacy: .public)")
+
+            motionManager.queryActivityStarting(
+                from: Date().addingTimeInterval(-1),
+                to: .now,
+                to: .main
+            ) { [logger] _, error in
+                if let error {
+                    logger.error("동작 및 피트니스 권한 요청을 완료하지 못했습니다: \(error.localizedDescription, privacy: .public)")
+                }
+                resumeOnce()
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [logger] in
+                guard !hasResumed else { return }
+                logger.error("동작 및 피트니스 권한 요청 응답이 지연되어 다음 단계로 진행합니다.")
+                resumeOnce()
+            }
         }
     }
 
