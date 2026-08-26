@@ -8,18 +8,36 @@
 import SwiftUI
 
 struct HomeView: View {
-    private let onAddWindow: () -> Void
+    @State private var windows: [NapWindow]
+    @State private var scheduleRoute: ScheduleEditRoute?
     @ScaledMetric(relativeTo: .callout) private var sectionLineHeight = 24.0
 
-    init(onAddWindow: @escaping () -> Void = {}) {
-        self.onAddWindow = onAddWindow
+    init(windows: [NapWindow]? = nil) {
+        _windows = State(
+            initialValue: windows ?? NapWindowStorage.load() ?? NapWindow.figmaHomeFixtures
+        )
+#if DEBUG
+        let previewRoute = ProcessInfo.processInfo.arguments.contains("-SIPPreviewSchedule")
+            ? ScheduleEditRoute(window: .defaultDraft)
+            : nil
+        _scheduleRoute = State(initialValue: previewRoute)
+#else
+        _scheduleRoute = State(initialValue: nil)
+#endif
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    NapWindowCard(model: .upcoming)
+                    if let upcomingWindow {
+                        NapWindowButton(
+                            window: upcomingWindow,
+                            presentation: .upcoming,
+                            onEdit: edit,
+                            onSetEnabled: setEnabled
+                        )
+                    }
 
                     Text("낮잠 가능 시간")
                         .font(NotoSansKR.font(size: 16, weight: .bold, relativeTo: .callout))
@@ -28,7 +46,16 @@ struct HomeView: View {
                         .padding(.top, 24)
                         .padding(.bottom, 12)
 
-                    NapWindowCard(model: .disabled)
+                    LazyVStack(spacing: 8) {
+                        ForEach(remainingWindows) { window in
+                            NapWindowButton(
+                                window: window,
+                                presentation: window.isEnabled ? .enabled : .disabled,
+                                onEdit: edit,
+                                onSetEnabled: setEnabled
+                            )
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
@@ -52,7 +79,7 @@ struct HomeView: View {
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: onAddWindow) {
+                    Button(action: addWindow) {
                         Image("IconoirPlus")
                             .resizable()
                             .scaledToFit()
@@ -63,8 +90,48 @@ struct HomeView: View {
                 }
             }
             .toolbarBackground(.hidden, for: .navigationBar)
+            .navigationDestination(item: $scheduleRoute) { route in
+                ScheduleEditView(window: route.window, onSave: save)
+            }
         }
     }
+
+    private var upcomingWindow: NapWindow? {
+        windows.first(where: \.isEnabled)
+    }
+
+    private var remainingWindows: [NapWindow] {
+        guard let upcomingWindow else { return windows }
+        return windows.filter { $0.id != upcomingWindow.id }
+    }
+
+    private func addWindow() {
+        scheduleRoute = ScheduleEditRoute(window: .defaultDraft)
+    }
+
+    private func edit(_ window: NapWindow) {
+        scheduleRoute = ScheduleEditRoute(window: window)
+    }
+
+    private func save(_ window: NapWindow) {
+        if let index = windows.firstIndex(where: { $0.id == window.id }) {
+            windows[index] = window
+        } else {
+            windows.append(window)
+        }
+        NapWindowStorage.save(windows)
+    }
+
+    private func setEnabled(_ window: NapWindow, _ isEnabled: Bool) {
+        guard let index = windows.firstIndex(where: { $0.id == window.id }) else { return }
+        windows[index].isEnabled = isEnabled
+        NapWindowStorage.save(windows)
+    }
+}
+
+private struct ScheduleEditRoute: Identifiable, Hashable {
+    let window: NapWindow
+    var id: UUID { window.id }
 }
 
 private struct SipWordmark: View {
@@ -77,8 +144,39 @@ private struct SipWordmark: View {
     }
 }
 
+private struct NapWindowButton: View {
+    let window: NapWindow
+    let presentation: NapWindowPresentation
+    let onEdit: (NapWindow) -> Void
+    let onSetEnabled: (NapWindow, Bool) -> Void
+
+    var body: some View {
+        Button {
+            onEdit(window)
+        } label: {
+            NapWindowCard(window: window, presentation: presentation)
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button {
+                onSetEnabled(window, !window.isEnabled)
+            } label: {
+                Label(
+                    window.isEnabled ? "시간 비활성화" : "시간 활성화",
+                    systemImage: window.isEnabled ? "pause.circle" : "play.circle"
+                )
+            }
+        }
+        .accessibilityAction(named: window.isEnabled ? "시간 비활성화" : "시간 활성화") {
+            onSetEnabled(window, !window.isEnabled)
+        }
+        .accessibilityHint("두 번 탭하여 편집하고 길게 눌러 활성 상태를 변경합니다")
+    }
+}
+
 private struct NapWindowCard: View {
-    let model: NapWindowCardModel
+    let window: NapWindow
+    let presentation: NapWindowPresentation
 
     @ScaledMetric(relativeTo: .footnote) private var eyebrowLineHeight = 20.0
     @ScaledMetric(relativeTo: .title2) private var timeLineHeight = 34.0
@@ -87,27 +185,27 @@ private struct NapWindowCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(model.eyebrow)
+            Text(presentation.eyebrow)
                 .font(NotoSansKR.font(size: 13, weight: .bold, relativeTo: .footnote))
                 .foregroundStyle(Color("TextSecondary"))
                 .frame(minHeight: eyebrowLineHeight)
 
-            Text(model.timeRange)
+            Text(window.timeRange)
                 .font(NotoSansKR.font(size: 24, weight: .bold, relativeTo: .title2))
                 .foregroundStyle(Color("TextPrimary"))
                 .frame(minHeight: timeLineHeight)
 
-            if let relativeTime = model.relativeTime {
+            if let relativeTime = presentation.relativeTime {
                 Text(relativeTime)
                     .font(NotoSansKR.font(size: 13, weight: .regular, relativeTo: .footnote))
                     .foregroundStyle(Color("TextSecondary"))
                     .frame(minHeight: relativeTimeLineHeight)
             }
 
-            WeekdayRow(activeWeekdays: model.activeWeekdays)
+            WeekdayRow(activeWeekdays: window.activeWeekdays)
 
-            if let alarmTime = model.alarmTime {
-                Text("알람 \(alarmTime)")
+            if window.isEndAlarmEnabled {
+                Text("알람 \(window.alarmTimeLabel)")
                     .font(NotoSansKR.font(size: 12, weight: .medium, relativeTo: .caption1))
                     .foregroundStyle(Color("TextSecondary"))
                     .frame(minHeight: alarmLineHeight)
@@ -197,63 +295,21 @@ private struct WeekdayChip: View {
     }
 }
 
-private struct NapWindowCardModel {
-    let eyebrow: String
-    let timeRange: String
-    let relativeTime: String?
-    let activeWeekdays: Set<Weekday>
-    let alarmTime: String?
+private enum NapWindowPresentation {
+    case upcoming
+    case enabled
+    case disabled
 
-    static let upcoming = NapWindowCardModel(
-        eyebrow: "오늘 열리는 시간",
-        timeRange: "13:00–14:00",
-        relativeTime: "1시간 12분 후 열려요",
-        activeWeekdays: [.monday, .tuesday, .wednesday, .thursday, .friday],
-        alarmTime: "14:00"
-    )
-
-    static let disabled = NapWindowCardModel(
-        eyebrow: "비활성화된 시간",
-        timeRange: "13:00–14:00",
-        relativeTime: nil,
-        activeWeekdays: [.saturday, .sunday],
-        alarmTime: nil
-    )
-}
-
-private enum Weekday: Int, CaseIterable, Identifiable, Hashable {
-    case monday
-    case tuesday
-    case wednesday
-    case thursday
-    case friday
-    case saturday
-    case sunday
-
-    var id: Int { rawValue }
-
-    var shortName: String {
+    var eyebrow: String {
         switch self {
-        case .monday: "월"
-        case .tuesday: "화"
-        case .wednesday: "수"
-        case .thursday: "목"
-        case .friday: "금"
-        case .saturday: "토"
-        case .sunday: "일"
+        case .upcoming: "오늘 열리는 시간"
+        case .enabled: "활성화된 시간"
+        case .disabled: "비활성화된 시간"
         }
     }
 
-    var fullName: String {
-        switch self {
-        case .monday: "월요일"
-        case .tuesday: "화요일"
-        case .wednesday: "수요일"
-        case .thursday: "목요일"
-        case .friday: "금요일"
-        case .saturday: "토요일"
-        case .sunday: "일요일"
-        }
+    var relativeTime: String? {
+        self == .upcoming ? "1시간 12분 후 열려요" : nil
     }
 }
 
