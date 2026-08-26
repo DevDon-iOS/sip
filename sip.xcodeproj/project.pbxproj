@@ -308,7 +308,7 @@
 				DEVELOPMENT_TEAM = 7KL6NFBYCF;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.codling.sipTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -327,7 +327,7 @@
 				DEVELOPMENT_TEAM = 7KL6NFBYCF;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.codling.sipTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -465,6 +465,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = sip;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Apple Watch에서 낮잠 기록과 건강 수면 데이터를 함께 확인하기 위해 수면 데이터를 읽습니다.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Apple Watch에서 확인한 낮잠을 Apple 건강에 저장하기 위해 수면 데이터를 기록합니다.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "낮잠 가능 시간 안에서 움직임 변화를 확인하기 위해 동작 데이터를 사용합니다.";
@@ -474,7 +475,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.codling.sip.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -498,6 +499,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = sip;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Apple Watch에서 낮잠 기록과 건강 수면 데이터를 함께 확인하기 위해 수면 데이터를 읽습니다.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Apple Watch에서 확인한 낮잠을 Apple 건강에 저장하기 위해 수면 데이터를 기록합니다.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "낮잠 가능 시간 안에서 움직임 변화를 확인하기 위해 동작 데이터를 사용합니다.";
@@ -507,7 +509,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.codling.sip.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -532,6 +534,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = sip;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "낮잠 기록과 Apple 건강 수면 기록을 함께 확인하기 위해 수면 데이터를 읽습니다.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "sip이 감지한 낮잠을 Apple 건강에 저장하기 위해 수면 데이터를 기록합니다.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "낮잠 가능 시간 안에서 움직임 변화를 확인하기 위해 동작 데이터를 사용합니다.";
@@ -545,7 +548,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.codling.sip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -567,6 +570,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = sip;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "낮잠 기록과 Apple 건강 수면 기록을 함께 확인하기 위해 수면 데이터를 읽습니다.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "sip이 감지한 낮잠을 Apple 건강에 저장하기 위해 수면 데이터를 기록합니다.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "낮잠 가능 시간 안에서 움직임 변화를 확인하기 위해 동작 데이터를 사용합니다.";
@@ -580,7 +584,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.codling.sip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
