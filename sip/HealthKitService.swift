@@ -73,6 +73,7 @@ final class HealthKitService {
             .filter { $0.value == HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue }
             .map {
                 SleepRecord(
+                    id: $0.uuid,
                     startDate: $0.startDate,
                     endDate: $0.endDate
                 )

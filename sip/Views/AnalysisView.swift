@@ -79,9 +79,18 @@ private struct RecordsContent: View {
 
             LazyVStack(spacing: 8) {
                 ForEach(recentRecords) { record in
-                    RecordRow(record: record)
+                    NavigationLink(value: record) {
+                        RecordRow(record: record)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
+        }
+        .navigationDestination(for: SleepRecord.self) { record in
+            RecordFlowDestination(
+                record: record,
+                checkIn: ConditionCheckInStorage.checkIn(for: record.id)
+            )
         }
     }
 }
@@ -288,21 +297,15 @@ private struct DailyNapDuration: Identifiable {
     }()
 }
 
-private extension SleepRecord {
-    var durationMinutes: Int {
-        max(1, Int((duration / 60).rounded()))
-    }
-
-    var dateLabel: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = Calendar.current.isDateInToday(endDate) ? "'오늘' · HH:mm" : "M월 d일 · HH:mm"
-        return formatter.string(from: endDate)
-    }
-}
-
 #if DEBUG
 extension SleepRecord {
+    static let figmaDetected = previewRecord(
+        daysAgo: 0,
+        hour: 13,
+        minute: 50,
+        durationMinutes: 42
+    )
+
     static let figmaRecords: [SleepRecord] = [
         previewRecord(daysAgo: 0, hour: 13, minute: 24, durationMinutes: 36),
         previewRecord(daysAgo: 2, hour: 14, minute: 8, durationMinutes: 26),

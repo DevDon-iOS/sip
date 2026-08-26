@@ -58,24 +58,31 @@ enum NotoSansKR {
         weight: Weight,
         relativeTo textStyle: UIFont.TextStyle
     ) -> Font {
+        let scaledFont = UIFontMetrics(forTextStyle: textStyle).scaledFont(
+            for: uiFont(size: size, weight: weight)
+        )
+        return Font(scaledFont)
+    }
+
+    static func navigationFont(size: CGFloat, weight: Weight) -> Font {
+        Font(uiFont(size: size, weight: weight))
+    }
+
+    private static func uiFont(size: CGFloat, weight: Weight) -> UIFont {
         _ = registration
 
-        let baseFont: UIFont
-        if let bundledFont = UIFont(name: "Noto Sans KR", size: size) {
-            let weightAxis = NSNumber(value: 0x77676874)
-            let variationAttribute = UIFontDescriptor.AttributeName(
-                rawValue: kCTFontVariationAttribute as String
-            )
-            let descriptor = bundledFont.fontDescriptor.addingAttributes([
-                variationAttribute: [weightAxis: NSNumber(value: weight.rawValue)]
-            ])
-            baseFont = UIFont(descriptor: descriptor, size: size)
-        } else {
+        guard let bundledFont = UIFont(name: "Noto Sans KR", size: size) else {
             logger.error("Registered Noto Sans KR family could not be resolved.")
-            baseFont = UIFont.systemFont(ofSize: size, weight: weight.fallbackWeight)
+            return UIFont.systemFont(ofSize: size, weight: weight.fallbackWeight)
         }
 
-        let scaledFont = UIFontMetrics(forTextStyle: textStyle).scaledFont(for: baseFont)
-        return Font(scaledFont)
+        let weightAxis = NSNumber(value: 0x77676874)
+        let variationAttribute = UIFontDescriptor.AttributeName(
+            rawValue: kCTFontVariationAttribute as String
+        )
+        let descriptor = bundledFont.fontDescriptor.addingAttributes([
+            variationAttribute: [weightAxis: NSNumber(value: weight.rawValue)]
+        ])
+        return UIFont(descriptor: descriptor, size: size)
     }
 }
