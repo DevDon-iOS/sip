@@ -31,6 +31,7 @@ final class WatchNapStore: NSObject, ObservableObject {
         static let activeSessionData = "activeSessionData"
         static let eventID = "eventID"
         static let eventData = "eventData"
+        static let observationData = "observationData"
         static let command = "command"
         static let sessionID = "sessionID"
     }
@@ -42,6 +43,7 @@ final class WatchNapStore: NSObject, ObservableObject {
     private let defaults: UserDefaults
     private let connectivitySession: WCSession?
     private var outbox: [WatchSyncEvent]
+    private let observationOutbox: WatchObservationOutbox?
     private var lastCommittedAlarmSnapshot: WatchNapWindowSnapshot?
 
     override init() {
@@ -55,6 +57,7 @@ final class WatchNapStore: NSObject, ObservableObject {
         window = loadedWindow
         activeSession = Self.decode(WatchNapSession.self, key: StorageKey.activeSession, defaults: defaults)
         outbox = Self.decode([WatchSyncEvent].self, key: StorageKey.outbox, defaults: defaults) ?? []
+        observationOutbox = Self.makeObservationOutbox()
         lastCommittedAlarmSnapshot = loadedWindow
         connectivitySession = WCSession.isSupported() ? .default : nil
         super.init()
@@ -71,6 +74,7 @@ final class WatchNapStore: NSObject, ObservableObject {
         window = previewWindow
         activeSession = previewState.session
         outbox = []
+        observationOutbox = nil
         lastCommittedAlarmSnapshot = previewWindow
         connectivitySession = nil
         super.init()
@@ -99,11 +103,50 @@ final class WatchNapStore: NSObject, ObservableObject {
         )
         activeSession = session
         persist(session, key: StorageKey.activeSession)
+        recordSupportedObservation(
+            WatchNormalizedObservation(
+                sessionID: session.id,
+                sequence: 0,
+                start: now,
+                end: now.addingTimeInterval(0.001),
+                kind: .directStart,
+                capturedAt: now,
+                algorithmVersion: "unvalidated-production-v1"
+            )
+        )
         enqueue(.session(session, kind: .sessionStarted))
     }
 
     func endNap() {
+        endNap(now: .now)
+    }
+
+    func endNap(now: Date) {
         guard let activeSession else { return }
+        if activeSession.startedAt < now {
+            recordSupportedObservation(
+                WatchNormalizedObservation(
+                    sessionID: activeSession.id,
+                    sequence: 1,
+                    start: activeSession.startedAt,
+                    end: now,
+                    kind: .activeSession,
+                    capturedAt: now,
+                    algorithmVersion: "unvalidated-production-v1"
+                )
+            )
+        }
+        recordSupportedObservation(
+            WatchNormalizedObservation(
+                sessionID: activeSession.id,
+                sequence: 2,
+                start: now,
+                end: now.addingTimeInterval(0.001),
+                kind: .directEnd,
+                capturedAt: now,
+                algorithmVersion: "unvalidated-production-v1"
+            )
+        )
         enqueue(.session(activeSession, kind: .sessionEnded))
         rememberEndedSession(activeSession.id)
         self.activeSession = nil
@@ -128,6 +171,15 @@ final class WatchNapStore: NSObject, ObservableObject {
     func commitAlarmChange() {
         guard let window else { return }
         enqueueAlarmUpdateIfNeeded(window)
+    }
+
+    func recordSupportedObservation(_ observation: WatchNormalizedObservation) {
+        do {
+            try observationOutbox?.enqueue(observation)
+            flushOutbox()
+        } catch {
+            logger.error("Watch observation persistence failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     private func enqueueAlarmUpdateIfNeeded(_ window: WatchNapWindowSnapshot) {
@@ -162,6 +214,18 @@ final class WatchNapStore: NSObject, ObservableObject {
                 ])
             } catch {
                 logger.error("Watch event encoding failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        for observation in observationOutbox?.observations ?? []
+        where !outstandingIDs.contains(observation.id.uuidString) {
+            do {
+                connectivitySession.transferUserInfo([
+                    MessageKey.schemaVersion: WatchNormalizedObservation.currentSchemaVersion,
+                    MessageKey.eventID: observation.id.uuidString,
+                    MessageKey.observationData: try JSONEncoder().encode(observation)
+                ])
+            } catch {
+                logger.error("Watch observation encoding failed: \(error.localizedDescription, privacy: .public)")
             }
         }
     }
@@ -202,6 +266,13 @@ final class WatchNapStore: NSObject, ObservableObject {
     }
 
     private func apply(userInfo: [String: Any]) {
+        if userInfo[MessageKey.command] as? String == "observationIngested",
+           let eventIDString = userInfo[MessageKey.eventID] as? String,
+           let eventID = UUID(uuidString: eventIDString) {
+            markDelivered(eventID: eventID)
+            return
+        }
+
         guard userInfo[MessageKey.command] as? String == "sessionEnded",
               let sessionIDString = userInfo[MessageKey.sessionID] as? String,
               let sessionID = UUID(uuidString: sessionIDString),
@@ -214,6 +285,11 @@ final class WatchNapStore: NSObject, ObservableObject {
     private func markDelivered(eventID: UUID) {
         outbox.removeAll { $0.id == eventID }
         persist(outbox, key: StorageKey.outbox)
+        do {
+            try observationOutbox?.markDelivered(id: eventID)
+        } catch {
+            logger.error("Watch observation delivery persistence failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     private func endedSessionIDs() -> [UUID] {
@@ -249,6 +325,19 @@ final class WatchNapStore: NSObject, ObservableObject {
                 category: "WatchNapStore"
             )
             .error("Watch local decoding failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    private static func makeObservationOutbox() -> WatchObservationOutbox? {
+        do {
+            return try WatchObservationOutbox()
+        } catch {
+            Logger(
+                subsystem: "com.codling.sip.watchkitapp",
+                category: "WatchNapStore"
+            )
+            .error("Watch observation outbox initialization failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -297,6 +386,7 @@ extension WatchNapStore: WCSessionDelegate {
         error: Error?
     ) {
         guard error == nil,
+              userInfoTransfer.userInfo[MessageKey.observationData] == nil,
               let eventIDString = userInfoTransfer.userInfo[MessageKey.eventID] as? String,
               let eventID = UUID(uuidString: eventIDString) else { return }
         Task { @MainActor in
