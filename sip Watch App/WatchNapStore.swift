@@ -7,6 +7,7 @@
 
 import Foundation
 import OSLog
+import WatchKit
 @preconcurrency import WatchConnectivity
 
 @MainActor
@@ -45,6 +46,8 @@ final class WatchNapStore: NSObject, ObservableObject {
     private var outbox: [WatchSyncEvent]
     private let observationOutbox: WatchObservationOutbox?
     private var lastCommittedAlarmSnapshot: WatchNapWindowSnapshot?
+    private var motionObservationController: WatchMotionObservationController?
+    private var lifecycleObservers: [NSObjectProtocol] = []
 
     override init() {
         let defaults = UserDefaults.standard
@@ -64,6 +67,8 @@ final class WatchNapStore: NSObject, ObservableObject {
 
         connectivitySession?.delegate = self
         connectivitySession?.activate()
+        configureMotionObservation()
+        observeApplicationLifecycle()
     }
 
 #if DEBUG
@@ -77,6 +82,7 @@ final class WatchNapStore: NSObject, ObservableObject {
         observationOutbox = nil
         lastCommittedAlarmSnapshot = previewWindow
         connectivitySession = nil
+        motionObservationController = nil
         super.init()
     }
 #endif
@@ -94,7 +100,7 @@ final class WatchNapStore: NSObject, ObservableObject {
     }
 
     func startNap(now: Date = .now) {
-        guard let window else { return }
+        guard let window, activeSession == nil else { return }
         let session = WatchNapSession(
             id: UUID(),
             windowID: window.id,
@@ -103,6 +109,7 @@ final class WatchNapStore: NSObject, ObservableObject {
         )
         activeSession = session
         persist(session, key: StorageKey.activeSession)
+        startMotionObservation(for: session, from: now)
         recordSupportedObservation(
             WatchNormalizedObservation(
                 sessionID: session.id,
@@ -123,6 +130,7 @@ final class WatchNapStore: NSObject, ObservableObject {
 
     func endNap(now: Date) {
         guard let activeSession else { return }
+        motionObservationController?.stop(at: now)
         if activeSession.startedAt < now {
             recordSupportedObservation(
                 WatchNormalizedObservation(
@@ -179,6 +187,67 @@ final class WatchNapStore: NSObject, ObservableObject {
             flushOutbox()
         } catch {
             logger.error("Watch observation persistence failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func configureMotionObservation() {
+        guard observationOutbox != nil else { return }
+        motionObservationController = WatchMotionObservationController(
+            provider: CoreMotionActivityObservationProvider()
+        ) { [weak self] observation in
+            self?.recordSupportedObservation(observation)
+        }
+        if let activeSession, WKExtension.shared().applicationState == .active {
+            startMotionObservation(for: activeSession, from: activeSession.startedAt)
+        }
+    }
+
+    private func observeApplicationLifecycle() {
+        let center = NotificationCenter.default
+        lifecycleObservers = [
+            center.addObserver(
+                forName: WKExtension.applicationWillResignActiveNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor in
+                    self?.motionObservationController?.pause(at: .now)
+                }
+            },
+            center.addObserver(
+                forName: WKExtension.applicationDidBecomeActiveNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor in
+                    self?.resumeMotionObservation(at: .now)
+                    self?.flushOutbox()
+                }
+            }
+        ]
+    }
+
+    private func startMotionObservation(for session: WatchNapSession, from date: Date) {
+        do {
+            try motionObservationController?.start(sessionID: session.id, from: date)
+        } catch {
+            logger.error("Watch motion observation start failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func resumeMotionObservation(at date: Date) {
+        guard let activeSession, let motionObservationController else { return }
+        do {
+            switch motionObservationController.providerState {
+            case .paused:
+                try motionObservationController.resume(at: date)
+            case .stopped, .cancelled:
+                try motionObservationController.start(sessionID: activeSession.id, from: activeSession.startedAt)
+            case .running:
+                break
+            }
+        } catch {
+            logger.error("Watch motion observation resume failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -257,8 +326,15 @@ final class WatchNapStore: NSObject, ObservableObject {
             do {
                 let session = try JSONDecoder().decode(WatchNapSession.self, from: sessionData)
                 guard !endedSessionIDs().contains(session.id) else { return }
+                let shouldStartObservation = activeSession?.id != session.id
+                if shouldStartObservation, activeSession != nil {
+                    motionObservationController?.stop(at: .now)
+                }
                 activeSession = session
                 persist(session, key: StorageKey.activeSession)
+                if shouldStartObservation, WKExtension.shared().applicationState == .active {
+                    startMotionObservation(for: session, from: session.startedAt)
+                }
             } catch {
                 logger.error("Active session decoding failed: \(error.localizedDescription, privacy: .public)")
             }
@@ -277,6 +353,7 @@ final class WatchNapStore: NSObject, ObservableObject {
               let sessionIDString = userInfo[MessageKey.sessionID] as? String,
               let sessionID = UUID(uuidString: sessionIDString),
               activeSession?.id == sessionID else { return }
+        motionObservationController?.stop(at: .now)
         rememberEndedSession(sessionID)
         activeSession = nil
         defaults.removeObject(forKey: StorageKey.activeSession)

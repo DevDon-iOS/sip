@@ -37,7 +37,9 @@ final class WatchObservationOutbox {
     }
 
     func enqueue(_ observation: WatchNormalizedObservation) throws {
-        guard !observations.contains(where: { $0.id == observation.id }) else { return }
+        guard !observations.contains(where: {
+            $0.id == observation.id || $0.deduplicationKey == observation.deduplicationKey
+        }) else { return }
         observations.append(observation)
         observations.sort {
             if $0.sequence != $1.sequence { return $0.sequence < $1.sequence }

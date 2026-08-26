@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A100000D2E20000100000001 /* WatchNapModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000F2E20000100000001 /* WatchNapModels.swift */; };
 		A100000E2E20000100000001 /* WatchObservationOutbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000102E20000100000001 /* WatchObservationOutbox.swift */; };
+		A10000122E25000100000001 /* WatchMotionObservation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000112E25000100000001 /* WatchMotionObservation.swift */; };
 		F6E50F962E1CF57E00099862 /* sip Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = F6E50F952E1CF57E00099862 /* sip Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -46,6 +47,7 @@
 /* Begin PBXFileReference section */
 		A100000F2E20000100000001 /* WatchNapModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "sip Watch App/WatchNapModels.swift"; sourceTree = SOURCE_ROOT; };
 		A10000102E20000100000001 /* WatchObservationOutbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "sip Watch App/WatchObservationOutbox.swift"; sourceTree = SOURCE_ROOT; };
+		A10000112E25000100000001 /* WatchMotionObservation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "sip Watch App/WatchMotionObservation.swift"; sourceTree = SOURCE_ROOT; };
 		A10000022E20000100000001 /* sipTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = sipTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6E50F882E1CF57D00099862 /* sip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6E50F952E1CF57E00099862 /* sip Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "sip Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -99,6 +101,7 @@
 			children = (
 				A100000F2E20000100000001 /* WatchNapModels.swift */,
 				A10000102E20000100000001 /* WatchObservationOutbox.swift */,
+				A10000112E25000100000001 /* WatchMotionObservation.swift */,
 				F6E50F8A2E1CF57D00099862 /* sip */,
 				F6E50F992E1CF57E00099862 /* sip Watch App */,
 				A10000032E20000100000001 /* sipTests */,
@@ -262,6 +265,7 @@
 			files = (
 				A100000D2E20000100000001 /* WatchNapModels.swift in Sources */,
 				A100000E2E20000100000001 /* WatchObservationOutbox.swift in Sources */,
+				A10000122E25000100000001 /* WatchMotionObservation.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -461,6 +465,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = sip;
+				INFOPLIST_KEY_NSMotionUsageDescription = "낮잠 가능 시간 안에서 움직임 변화를 확인하기 위해 동작 데이터를 사용합니다.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.codling.sip;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -491,6 +496,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = sip;
+				INFOPLIST_KEY_NSMotionUsageDescription = "낮잠 가능 시간 안에서 움직임 변화를 확인하기 위해 동작 데이터를 사용합니다.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.codling.sip;
 				LD_RUNPATH_SEARCH_PATHS = (

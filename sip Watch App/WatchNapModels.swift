@@ -118,6 +118,11 @@ struct WatchNormalizedObservation: Codable, Equatable, Identifiable {
     let timeZoneIdentifier: String
     let schemaVersion: Int
     let algorithmVersion: String
+    let providerIdentifier: String?
+    let sourceBundleIdentifier: String?
+    let sourceVersion: String?
+    let deviceIdentifier: String?
+    let metadata: [String: String]?
 
     init(
         id: UUID = UUID(),
@@ -131,7 +136,12 @@ struct WatchNormalizedObservation: Codable, Equatable, Identifiable {
         capturedAt: Date,
         timeZoneIdentifier: String = TimeZone.current.identifier,
         schemaVersion: Int = currentSchemaVersion,
-        algorithmVersion: String
+        algorithmVersion: String,
+        providerIdentifier: String? = nil,
+        sourceBundleIdentifier: String? = nil,
+        sourceVersion: String? = nil,
+        deviceIdentifier: String? = nil,
+        metadata: [String: String]? = nil
     ) {
         self.id = id
         self.sessionID = sessionID
@@ -145,5 +155,14 @@ struct WatchNormalizedObservation: Codable, Equatable, Identifiable {
         self.timeZoneIdentifier = timeZoneIdentifier
         self.schemaVersion = schemaVersion
         self.algorithmVersion = algorithmVersion
+        self.providerIdentifier = providerIdentifier
+        self.sourceBundleIdentifier = sourceBundleIdentifier
+        self.sourceVersion = sourceVersion
+        self.deviceIdentifier = deviceIdentifier
+        self.metadata = metadata
+    }
+
+    var deduplicationKey: String {
+        "\(sessionID.uuidString)|\(providerIdentifier ?? id.uuidString)"
     }
 }
