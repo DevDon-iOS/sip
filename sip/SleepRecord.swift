@@ -14,5 +14,4 @@ struct SleepRecord: Identifiable {
     var duration: TimeInterval {
         return endDate.timeIntervalSince(startDate)
     }
-    let qualityScore: Int // 0~100, 수면 질 점수
 }
