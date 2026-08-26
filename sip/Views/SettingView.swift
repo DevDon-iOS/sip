@@ -13,7 +13,6 @@ import UserNotifications
 
 struct SettingView: View {
     private let fixedPermissions: PermissionSnapshot?
-    private let onHelp: () -> Void
     private let onExport: () -> Void
     private let onDeleteAllData: () -> Void
 
@@ -23,12 +22,10 @@ struct SettingView: View {
 
     init(
         permissions: PermissionSnapshot? = nil,
-        onHelp: @escaping () -> Void = {},
         onExport: @escaping () -> Void = {},
         onDeleteAllData: @escaping () -> Void = {}
     ) {
         fixedPermissions = permissions
-        self.onHelp = onHelp
         self.onExport = onExport
         self.onDeleteAllData = onDeleteAllData
         _permissions = State(initialValue: permissions ?? .pending)
@@ -71,7 +68,12 @@ struct SettingView: View {
                         .accessibilityHint("기상 후 상태 입력 알림을 켜거나 끕니다")
 
                         SettingDivider()
-                        DisclosureRow(label: "도움말", action: onHelp)
+                        NavigationLink {
+                            HelpView()
+                        } label: {
+                            DisclosureRowLabel(label: "도움말")
+                        }
+                        .buttonStyle(.plain)
                     }
                     .padding(.top, 16)
 
@@ -179,6 +181,25 @@ private struct DisclosureRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct DisclosureRowLabel: View {
+    let label: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            SettingRowLabel(label)
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color("TextTertiary"))
+                .accessibilityHidden(true)
+        }
+        .frame(minHeight: 64)
+        .padding(.leading, 16)
+        .padding(.trailing, 12)
+        .contentShape(Rectangle())
     }
 }
 

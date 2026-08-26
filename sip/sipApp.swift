@@ -9,6 +9,8 @@ import SwiftUI
 
 @main
 struct sipApp: App {
+    @AppStorage("hasCompletedPermissionIntroduction") private var hasCompletedPermissionIntroduction = false
+
     var body: some Scene {
         WindowGroup {
             rootView
@@ -34,12 +36,31 @@ struct sipApp: App {
                     checkIn: .figmaSaved(for: .figmaDetected)
                 )
             }
+        case "permission-introduction":
+            PermissionIntroductionView(onCompletion: {})
+        case "records-empty":
+            MaintabView(previewTab: "records-empty")
+        case "help":
+            DebugNavigationPreview {
+                HelpView()
+            }
         default:
-            MaintabView()
+            productionRoot
         }
 #else
-        MaintabView()
+        productionRoot
 #endif
+    }
+
+    @ViewBuilder
+    private var productionRoot: some View {
+        if hasCompletedPermissionIntroduction {
+            MaintabView()
+        } else {
+            PermissionIntroductionView {
+                hasCompletedPermissionIntroduction = true
+            }
+        }
     }
 }
 
@@ -52,7 +73,7 @@ private extension Array where Element == String {
     }
 }
 
-private struct DebugNavigationPreview<Content: View>: View {
+struct DebugNavigationPreview<Content: View>: View {
     @State private var isPresented = true
     private let content: Content
 
